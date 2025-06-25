@@ -50,15 +50,16 @@ IMPORTANT:
 
 User Input: {user_prompt}
 
+
 Now explain the task in plain English, focusing on GUI and keyboard automation steps, including any necessary waits or pauses, for the next AI.
 """
 
     response1 = client.chat.completions.create(
         extra_headers={
-            "HTTP-Referer": "<YOUR_SITE_URL>",
-            "X-Title": "<YOUR_SITE_NAME>",
+            "HTTP-Referer": "http://localhost:5000",
+            "X-Title": "Local Dev App",
         },
-        model="moonshotai/kimi-dev-72b:free",
+        model="deepseek/deepseek-chat-v3-0324:free",
         messages=[{"role": "user", "content": prompt1}]
     )
     task_description = response1.choices[0].message.content.strip()
@@ -85,10 +86,10 @@ Generate the exact Python code to perform the described task.
 
     response2 = client.chat.completions.create(
         extra_headers={
-            "HTTP-Referer": "<YOUR_SITE_URL>",
-            "X-Title": "<YOUR_SITE_NAME>",
+            "HTTP-Referer": "http://localhost:5000",
+            "X-Title": "Local Dev App",
         },
-        model="moonshotai/kimi-dev-72b:free",
+        model="deepseek/deepseek-chat-v3-0324:free",
         messages=[{"role": "user", "content": prompt2}]
     )
     python_code = response2.choices[0].message.content.strip()
@@ -150,3 +151,7 @@ def main(user_prompt):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
+
+
+

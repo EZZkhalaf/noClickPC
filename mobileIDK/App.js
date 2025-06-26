@@ -12,7 +12,7 @@ const   App = () => {
 
   const fetchServer = async() =>{
     try {
-      const response = await fetch('http://192.168.0.119:5000/submit' , {
+      const response = await fetch('http://192.168.1.11:5000/submit' , {
         method:'POST',
         headers : {
           'Content-Type' : 'application/json'

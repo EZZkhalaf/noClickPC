@@ -24,6 +24,10 @@ client = OpenAI(
 SCREENSHOT_DIR = 'screenshots'
 TEMP_SCRIPT = 'temp_script.py'
 
+
+
+
+
 # Ensure screenshot folder exists
 def create_screenshot_folder():
     os.makedirs(SCREENSHOT_DIR, exist_ok=True)
@@ -55,62 +59,61 @@ def delete_screenshots():
 # Prompt for task breakdown
 def generate_analysis(user_prompt: str ) -> str:
     prompt = f"""
-You are an expert AI assistant specializing in translating user instructions into step-by-step actions for desktop and browser automation.
+You are an expert AI planner responsible for converting high-level user instructions into clear, structured, step-by-step actions for Python-based GUI and browser automation.
 
 Your job is to interpret the following natural language task:
 
 "{user_prompt}"
 
-🖥️ SCREEN RESOLUTION:
-- The user's screen size is {width}x{height}. Use this for mouse positioning and screen-relative actions.
-- Use pyautogui.locateOnScreen() with confidence threshold (e.g., 0.8) when clicking UI elements
- - Do not use hardcoded (x, y) coordinates unless it's for a fixed location like bottom-right of screen
- 
-
-
 🎯 OBJECTIVE:
-Break down the task into **clear, executable steps** suitable for GUI automation using Python tools like **PyAutoGUI**, **web browsers**, and **screen interaction libraries**.
+Break the task down into **precise, literal steps** that a Python script could execute using automation tools like **PyAutoGUI**, **web browser control**, and **screen-based interaction libraries**.
 
-⚠️ INSTRUCTIONS — FOLLOW THESE RULES STRICTLY:
+These steps will be used as the input for a separate AI that writes the actual Python code — so your steps must be clean, complete, and easily translatable to code.
+
+🖥️ SCREEN DETAILS:
+- The user's screen size is {width}x{height}. Use this to guide relative positioning.
+- Use screen recognition via `pyautogui.locateOnScreen()` for clicking UI elements.
+- Do **not** rely on hardcoded pixel coordinates unless referencing a fixed part of the screen (e.g., taskbar or bottom-right).
+
+⚠️ RULES FOR STEP GENERATION:
 
 1. ❌ DO NOT generate or describe any Python code.
-2. ✅ Describe what needs to happen, not how it's coded.
-3. ✍️ Use simple, plain English. Be very clear and detailed.
-4. 🧠 Think like a robot controlling a screen — every interaction must be possible using mouse, keyboard, or screen recognition.
-5. ✅ All steps should be **sequential** and **explicit** — no guessing or assuming.
+2. ✅ DO provide a precise sequence of steps describing **what should happen** on screen.
+3. ✅ Use simple, literal, plain English to describe each action.
+4. 🧠 Think like an automation robot — only mouse, keyboard, and screen elements are available.
+5. ✅ Steps must be clear, atomic, and explicitly executable — no assumptions, no interpretation.
+6. ✅ Make sure the result is **suitable for a Python code generation system** to act on.
 
 🔧 FOR EACH STEP, INCLUDE:
-- 🎯 Exact mouse or keyboard actions (e.g., "press Win + D", "type 'notepad'")
-- 🧭 GUI interactions (e.g., "click the Gmail inbox tab", "scroll down")
-- 🕒 Wait times (e.g., "wait 3 seconds after clicking")
-- 📸 When to take screenshots (e.g., "take a screenshot after the Gmail inbox appears")
+- 🎯 The exact mouse or keyboard action (e.g., "Press the Windows key", "Type 'chrome'")
+- 🧭 The target of interaction (e.g., "Click the Gmail inbox tab", "Click the search bar")
+- 🕒 Wait times (e.g., "Wait 3 seconds after clicking")
+- 📸 Screenshot moments (e.g., "Take a screenshot after the Gmail inbox appears")
 
 🌐 FOR BROWSER TASKS:
-- Open the browser (e.g., Chrome, Edge)
-- Navigate to specific URLs (e.g., https://mail.google.com)
-- Perform search queries or click specific links
-- Identify elements by visible labels or positions
-- Handle popups or login screens if needed
+- Open the browser (Chrome is preferred)
+- Navigate to specific URLs or Google Search queries
+- Click specific links or buttons using visual labels or positions
+- Handle login screens, pop-ups, or scrollable content if necessary
 
-📌 EXAMPLES OF GOOD STEPS:
-- Press Win + D to show the desktop.
-- Press the Windows key, type "chrome", then press Enter.
-- Wait 3 seconds for Chrome to open.
+📌 EXAMPLES OF GOOD OUTPUT STEPS:
+- Press the Windows key, type "chrome", and press Enter.
+- Wait 2 seconds for Chrome to open.
 - In the address bar, type "https://mail.google.com" and press Enter.
-- Wait for Gmail to load.
-- Take a screenshot of the inbox screen.
-- Click on the first (most recent) email in the list.
+- Wait for Gmail to load fully.
+- Take a screenshot of the inbox view.
+- Click the most recent email in the list.
 - Wait 2 seconds.
 - Take a screenshot of the opened email.
 
-🚨 NOTE:
-- This will be passed to a code-generating AI that will create Python automation scripts.
-- So your steps must be reliable and suitable for automation via screen control.
+🚨 FINAL NOTE:
+- The next system will write Python code based on the exact steps you output.
+- Be careful, literal, and detailed — the quality of the automation depends entirely on your clarity and precision.
 
 🧾 TASK TO ANALYZE:
 {user_prompt}
 
-Now provide a detailed breakdown of every step required to complete the task above. Be as clear and literal as possible. 
+Now provide a complete, detailed breakdown of every required action to fulfill the task above. Be as clear and step-by-step as possible.
 """
 
     response = client.chat.completions.create(
@@ -127,17 +130,39 @@ Now provide a detailed breakdown of every step required to complete the task abo
 # Prompt for actual Python code generation
 def generate_code_from_analysis(task_description: str) -> str:
     prompt = f"""
-Write a Python automation script using pyautogui and time, based on the task below:
+Write a complete Python automation script using only the following libraries: pyautogui, time, os.
+
+Your script should perform the automation described below, following all instructions step by step:
 
 "{task_description}"
 
-⚠️ Only output valid, complete Python code.
-- Use pyautogui, time, os
-- Create screenshots folder at the start
-- Take screenshots after each action
-- Use try/except for file and GUI ops
-- No markdown, no extra text
+📂 GENERAL REQUIREMENTS:
+- Ensure a folder named 'screenshots' exists at the beginning of the script. Create it if it doesn't.
+- After **every action** (e.g., clicking, typing, opening something), take a screenshot and save it to the 'screenshots' folder.
+- Use `time.sleep()` after every significant action to allow the GUI to respond.
+
+🖱️ MOUSE AND GUI INTERACTION RULES:
+- Never use hardcoded coordinates (e.g., pyautogui.moveTo(100, 200)).
+- Always use `pyautogui.locateCenterOnScreen('filename.png', confidence=0.8)` to find and interact with screen elements.
+- Before moving or clicking, always check that `locateCenterOnScreen()` returned a valid result (not None).
+- If the element is not found:
+  - Handle it gracefully with a `try/except` or `if` check.
+  - Optionally take a screenshot to log the failure.
+
+🛠️ CODE QUALITY RULES:
+- Wrap all file system and GUI operations in `try/except` blocks.
+- Organize code clearly, in sequential steps according to the task.
+- Do not include any comments, markdown, or explanations — only output valid Python code.
+
+✅ OUTPUT ONLY:
+Only return raw, executable Python code. No text, headers, or formatting.
+
+Begin your response now with valid Python code that completes the task below:
+
+"{task_description}"
 """
+
+
     response = client.chat.completions.create(
         model="deepseek/deepseek-chat-v3-0324:free",
         messages=[{"role": "user", "content": prompt}],
@@ -148,7 +173,7 @@ Write a Python automation script using pyautogui and time, based on the task bel
 
 
 # New: Improve the generated Python code using a second AI model
-def improve_generated_code(raw_code: str) -> str:
+def improve_generated_code(raw_code: str , task : str) -> str:
     prompt = f"""
 You are a senior Python automation engineer.
 
@@ -163,6 +188,8 @@ DO NOT include markdown, explanations, or anything other than valid Python code.
 
 Original Code:
 {raw_code}
+and here is the task that the user wants to do : 
+{task}
 """
     response = client.chat.completions.create(
         model="deepseek/deepseek-chat-v3-0324:free",  # second model
@@ -170,6 +197,8 @@ Original Code:
         extra_headers={"HTTP-Referer": "http://localhost", "X-Title": "Code Improver"},
     )
     return response.choices[0].message.content.strip()
+
+
 
 # Executes the AI-generated Python code
 def execute_generated_code(code: str) -> str:
@@ -179,13 +208,13 @@ def execute_generated_code(code: str) -> str:
 
         with open(TEMP_SCRIPT, "w", encoding="utf-8") as f:
             f.write(code)
-        print("🚀 improving  the script.... ")
+        
 
         result = subprocess.run(
             [os.sys.executable, TEMP_SCRIPT],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=80
         )
 
         if os.path.exists(TEMP_SCRIPT):
@@ -201,6 +230,7 @@ def execute_generated_code(code: str) -> str:
         return f"Error executing code: {str(e)}"
 
 @app.route("/submit", methods=["POST"])
+
 def handle_input():
     try:
         data = request.get_json()
@@ -215,7 +245,7 @@ def handle_input():
         code = generate_code_from_analysis(analysis)
         print("📄 generating the first code ...")  # Preview first 200 chars
         
-        improved_code = improve_generated_code(code)
+        improved_code = improve_generated_code(code , user_input)
         print("✅ improving the code ...")  # Preview first 200 chars
 
         result = execute_generated_code(improved_code)
@@ -225,5 +255,4 @@ def handle_input():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
-
 

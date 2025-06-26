@@ -173,7 +173,7 @@ Begin your response now with valid Python code that completes the task below:
 
 
 # New: Improve the generated Python code using a second AI model
-def improve_generated_code(raw_code: str , task : str) -> str:
+# def improve_generated_code(raw_code: str , task : str) -> str:
     prompt = f"""
 You are a senior Python automation engineer.
 
@@ -235,20 +235,20 @@ def handle_input():
     try:
         data = request.get_json()
         user_input = data.get("text", "")
-        print("🎯 User request:", user_input)
+        print("The User request:", user_input)
 
         create_screenshot_folder()
 
         analysis = generate_analysis(user_input)
-        print("📋 Task Analysis")
+        print("-- Task Analysis")
 
         code = generate_code_from_analysis(analysis)
-        print("📄 generating the first code ...")  # Preview first 200 chars
+        print("-- generating the  code ...")  # Preview first 200 chars
         
-        improved_code = improve_generated_code(code , user_input)
-        print("✅ improving the code ...")  # Preview first 200 chars
+        # improved_code = improve_generated_code(code , user_input)
+        # print("✅ improving the code ...")  # Preview first 200 chars
 
-        result = execute_generated_code(improved_code)
+        result = execute_generated_code(code)
         return jsonify({"message": result})
     except Exception as e:
         return jsonify({"message": f"Server error: {str(e)}"}), 500
